@@ -49,7 +49,7 @@
     async function loadModel() {
       try {
         // Ruta relativa: model.json está en la misma carpeta que index.html
-        model = await tf.loadLayersModel('/model.json');
+        model = await tf.loadLayersModel('model.json');
         console.log("✅ Modelo cargado correctamente");
         statusP.textContent = "Estado: modelo cargado ✅";
         processBtn.disabled = false;
@@ -127,3 +127,4 @@
   </script>
 </body>
 </html>
+
