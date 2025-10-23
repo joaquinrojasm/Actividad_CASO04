@@ -1,131 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>KMNIST - Predicción (TFJS)</title>
+  <meta charset="UTF-8">
+  <title>Demo KMNIST con TensorFlow.js</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <style>
-    body { font-family: Arial, margin: 24px; padding: 16px; }
-    #canvas { border: 1px solid #999; image-rendering: pixelated; width: 140px; height: 140px; }
-    #previewWrapper { display:flex; gap:20px; align-items:center; }
-    #status { margin-top: 8px; font-weight: bold; }
-    #errors { color: red; white-space: pre-wrap; margin-top:8px; }
-    button:disabled { opacity: 0.5; }
-  </style>
 </head>
 <body>
-  <h1>KMNIST - TFJS (Debug)</h1>
-
-  <div>
-    <label>Seleccionar imagen (28x28 o mayor): </label>
-    <input id="fileInput" type="file" accept="image/*">
-    <button id="processBtn" disabled>Procesar imagen</button>
-  </div>
-
-  <div id="previewWrapper" style="margin-top:12px;">
-    <canvas id="canvas" width="28" height="28"></canvas>
-    <div>
-      <p id="result">Predicción: —</p>
-      <p id="confidence">Confianza: —</p>
-      <p id="status">Estado: cargando modelo...</p>
-      <pre id="errors"></pre>
-    </div>
-  </div>
+  <h2>Reconocimiento con modelo KMNIST</h2>
+  <input type="file" id="input-imagen" accept="image/*">
+  <p id="resultado"></p>
 
   <script>
-    const NAMES = ['o','ki','su','tsu','na','ha','ma','ya','re','wo']; // ajusta si tus nombres difieren
-    const fileInput = document.getElementById('fileInput');
-    const processBtn = document.getElementById('processBtn');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const resultP = document.getElementById('result');
-    const confP = document.getElementById('confidence');
-    const statusP = document.getElementById('status');
-    const errorsPre = document.getElementById('errors');
+    let modelo;
 
-    let model = null;
-    let lastFile = null;
-
-    async function loadModel() {
-      try {
-        // Ruta relativa: model.json está en la misma carpeta que index.html
-        model = await tf.loadLayersModel('./model.json');
-        console.log("✅ Modelo cargado correctamente");
-        statusP.textContent = "Estado: modelo cargado ✅";
-        processBtn.disabled = false;
-      } catch (err) {
-        console.error("Error cargando modelo:", err);
-        statusP.textContent = "Estado: error cargando modelo ❌";
-        errorsPre.textContent = "Error cargando modelo:\n" + (err.message || err);
-        // Dejar input deshabilitado si el modelo no carga
-        processBtn.disabled = true;
-        fileInput.disabled = true;
-      }
+    async function cargarModelo() {
+      // Carga el modelo exportado desde la carpeta tfjs_kmnist_dir
+      modelo = await tf.loadLayersModel('model.json');
+      console.log("✅ Modelo cargado correctamente");
     }
 
-    loadModel();
+    async function predecir(imagen) {
+      const img = tf.browser.fromPixels(imagen, 1)
+        .resizeNearestNeighbor([28, 28])
+        .toFloat()
+        .div(tf.scalar(255.0))
+        .expandDims(0);
 
-    fileInput.addEventListener('change', (e) => {
-      errorsPre.textContent = "";
-      resultP.textContent = "Predicción: —";
-      confP.textContent = "Confianza: —";
-      const f = e.target.files[0];
-      if (!f) return;
-      lastFile = f;
-      // Mostrar preview escalado en canvas
+      const prediccion = modelo.predict(img);
+      const clase = prediccion.argMax(1).dataSync()[0];
+      document.getElementById("resultado").innerText = "Predicción: " + clase;
+    }
+
+    document.getElementById('input-imagen').addEventListener('change', (e) => {
       const img = new Image();
-      img.onload = () => {
-        // Limpiar canvas
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        // Dibujar y escalar a 28x28
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.onerror = (err) => {
-        errorsPre.textContent = "Error cargando la imagen en el navegador.";
-        console.error(err);
-      };
-      img.src = URL.createObjectURL(f);
+      img.onload = () => predecir(img);
+      img.src = URL.createObjectURL(e.target.files[0]);
     });
 
-    processBtn.addEventListener('click', async () => {
-      errorsPre.textContent = "";
-      if (!lastFile) {
-        errorsPre.textContent = "No has seleccionado ninguna imagen. Selecciona una antes de procesar.";
-        return;
-      }
-      if (!model) {
-        errorsPre.textContent = "El modelo aún no está cargado. Espera un momento.";
-        return;
-      }
-
-      try {
-        // Reconstruir los datos desde el canvas (ya escalado a 28x28)
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const arr = [];
-        for (let i = 0; i < imageData.data.length; i += 4) {
-          const r = imageData.data[i], g = imageData.data[i+1], b = imageData.data[i+2];
-          const gray = (r + g + b) / 3;
-          arr.push(gray / 255.0);
-        }
-
-        // Crear tensor 1x28x28x1
-        const input = tf.tensor(arr, [1, canvas.width, canvas.height, 1]);
-        const preds = model.predict(input);
-        const data = await preds.data();
-        const maxIdx = data.indexOf(Math.max(...data));
-        resultP.innerHTML = `Predicción: <b>${NAMES[maxIdx] || maxIdx}</b>`;
-        confP.textContent = `Confianza: ${(data[maxIdx] * 100).toFixed(2)}%`;
-
-        // limpieza tensor
-        input.dispose();
-        preds.dispose();
-      } catch (err) {
-        console.error("Error durante la predicción:", err);
-        errorsPre.textContent = "Error durante la predicción:\n" + (err.message || err);
-      }
-    });
+    cargarModelo();
   </script>
 </body>
 </html>
-
-
