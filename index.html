@@ -55,10 +55,11 @@
   <script>
     let modelo;
 
-    // 🔹 Cargar el modelo exportado
+    // 🔹 Cargar el modelo exportado con GraphModel
     async function cargarModelo() {
       try {
-        modelo = await tf.loadLayersModel('model.json');
+        // Aquí usamos loadGraphModel en lugar de loadLayersModel
+        modelo = await tf.loadGraphModel('modelo_kmnist_tfjs/model.json');
         document.getElementById("cargando").innerText = "✅ Modelo cargado correctamente.";
         console.log("✅ Modelo cargado correctamente");
       } catch (err) {
@@ -85,14 +86,20 @@
           .expandDims(0);                 // Añadir batch
       });
 
-      const prediccion = modelo.predict(tensor);
-      const clase = prediccion.argMax(1).dataSync()[0];
+      // 🔹 GraphModel devuelve un objeto con key 'output_0' o similar
+      let prediccion = modelo.execute(tensor);
+      if (Array.isArray(prediccion)) {
+        prediccion = prediccion[0];  // por si devuelve lista
+      }
+
+      const clase = prediccion.argMax(-1).dataSync()[0];
 
       // Mostrar resultado
       document.getElementById("resultado").innerText = "Predicción: " + clase;
 
       // Liberar memoria del tensor
       tf.dispose(tensor);
+      tf.dispose(prediccion);
     }
 
     // 🔹 Cargar imagen desde input
