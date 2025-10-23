@@ -1,40 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Demo KMNIST con TensorFlow.js</title>
+  <title>🧠 Reconocimiento de Imágenes KMNIST</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background: #f5f6fa;
+      color: #2f3640;
+      margin: 0;
+      padding: 40px;
+    }
+    h2 {
+      color: #273c75;
+    }
+    #input-imagen {
+      margin-top: 20px;
+    }
+    #preview {
+      display: none;
+      margin-top: 25px;
+      border-radius: 8px;
+      border: 2px solid #718093;
+      width: 140px;
+      background: white;
+      padding: 10px;
+    }
+    #resultado {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-top: 20px;
+      color: #192a56;
+    }
+    #cargando {
+      margin-top: 10px;
+      font-style: italic;
+      color: #718093;
+    }
+  </style>
 </head>
 <body>
-  <h2>Reconocimiento con modelo KMNIST</h2>
+
+  <h2>🧩 Reconocimiento con modelo KMNIST</h2>
+  <p>Sube una imagen en escala de grises o color (preferiblemente 28x28 píxeles).</p>
+
   <input type="file" id="input-imagen" accept="image/*">
-  <p id="resultado"></p>
+  <div id="cargando">Cargando modelo...</div>
+
+  <img id="preview" alt="Vista previa de la imagen">
+  <p id="resultado">Predicción: —</p>
 
   <script>
     let modelo;
 
+    // 🔹 Cargar el modelo exportado
     async function cargarModelo() {
-      // Carga el modelo exportado desde la carpeta tfjs_kmnist_dir
-      modelo = await tf.loadLayersModel('model.json');
-      console.log("✅ Modelo cargado correctamente");
+      try {
+        modelo = await tf.loadLayersModel('model.json');
+        document.getElementById("cargando").innerText = "✅ Modelo cargado correctamente.";
+        console.log("✅ Modelo cargado correctamente");
+      } catch (err) {
+        console.error("❌ Error al cargar el modelo:", err);
+        document.getElementById("cargando").innerText = "❌ Error al cargar el modelo.";
+      }
     }
 
+    // 🔹 Función de predicción
     async function predecir(imagen) {
-      const img = tf.browser.fromPixels(imagen, 1)
-        .resizeNearestNeighbor([28, 28])
-        .toFloat()
-        .div(tf.scalar(255.0))
-        .expandDims(0);
+      if (!modelo) {
+        alert("El modelo aún no está cargado.");
+        return;
+      }
 
-      const prediccion = modelo.predict(img);
+      // Convertir la imagen a tensor y normalizar
+      const tensor = tf.tidy(() => {
+        return tf.browser.fromPixels(imagen)
+          .mean(2)                        // RGB → gris
+          .toFloat()
+          .resizeNearestNeighbor([28, 28])
+          .expandDims(-1)                 // Añadir canal
+          .div(tf.scalar(255.0))
+          .expandDims(0);                 // Añadir batch
+      });
+
+      const prediccion = modelo.predict(tensor);
       const clase = prediccion.argMax(1).dataSync()[0];
+
+      // Mostrar resultado
       document.getElementById("resultado").innerText = "Predicción: " + clase;
+
+      // Liberar memoria del tensor
+      tf.dispose(tensor);
     }
 
+    // 🔹 Cargar imagen desde input
     document.getElementById('input-imagen').addEventListener('change', (e) => {
+      const archivo = e.target.files[0];
+      if (!archivo) return;
+
       const img = new Image();
-      img.onload = () => predecir(img);
-      img.src = URL.createObjectURL(e.target.files[0]);
+      img.onload = () => {
+        const vista = document.getElementById('preview');
+        vista.src = img.src;
+        vista.style.display = "block";
+        predecir(img);
+      };
+      img.src = URL.createObjectURL(archivo);
     });
 
     cargarModelo();
