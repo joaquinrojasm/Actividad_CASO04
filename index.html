@@ -3,106 +3,261 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Fashion-MNIST - Demo TF.js</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.0.0/dist/tf.min.js"></script>
+  <title>Fashion-MNIST - Upload Demo</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 20px; color:#111; }
-    h1 { margin: 0 0 12px 0; font-size: 20px; }
-    .layout { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
-    .card { border:1px solid #e6e6e6; padding:16px; border-radius:10px; width:360px; box-shadow:0 6px 18px rgba(0,0,0,0.04); }
-    #preview { width: 280px; height: 280px; background:#fafafa; display:flex; align-items:center; justify-content:center; border-radius:6px; overflow:hidden; }
-    #preview img{ max-width:100%; max-height:100%; object-fit:contain; }
-    input[type=file]{ display:none; }
-    .btn { display:inline-block; padding:8px 12px; border-radius:8px; cursor:pointer; border:none; background:#1976d2; color:white; font-weight:600; }
-    .btn.secondary { background:#fff; color:#1976d2; border:1px solid #1976d2; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:20px; }
+    .card { border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.04); }
+    #preview { width: 280px; height: 280px; background:#fafafa; display:flex; align-items:center; justify-content:center; border-radius:6px; overflow:hidden; border:1px solid #eee; }
+    #preview img { max-width:100%; max-height:100%; object-fit:contain; }
+    .label { width:140px; font-size:14px; }
+    .bar { height:14px; background:#eee; border-radius:8px; flex:1; overflow:hidden; }
+    .fill { height:100%; width:0%; background:#1976d2; border-radius:8px; transition:width 300ms; }
     .muted { color:#666; font-size:13px; }
-    #predictions { margin-top:12px; }
-    .pred-row { display:flex; align-items:center; gap:8px; margin:6px 0; }
-    .bar { height:14px; background:#ddd; border-radius:8px; flex:1; overflow:hidden; }
-    .bar > .fill { height:100%; width:0%; background:#1976d2; border-radius:8px; transition:width 400ms ease; }
-    .label { width:120px; font-size:14px; }
-    #status { font-size:14px; margin-bottom:8px; color:#333; }
-    .small { font-size:13px; color:#444; }
-    .top-result { font-weight:700; margin-top:8px; }
   </style>
 </head>
 <body>
-  <h1>Demo: Fashion-MNIST (TF.js)</h1>
-  <div class="small muted">Carga una imagen (28×28 estilo Fashion-MNIST o cualquier foto). El modelo espera imágenes en <strong>grayscale 28×28</strong> normalizadas a 0–1.</div>
-
-  <div class="layout">
-    <div class="card">
-      <div id="status">Modelo: <span id="model-status">cargando...</span></div>
-
-      <div id="preview" title="Vista previa de la imagen">
-        <span class="muted">Sin imagen</span>
-      </div>
-
-      <div style="margin-top:12px;">
-        <label class="btn" id="btnSelect">Seleccionar imagen</label>
-        <input type="file" id="fileInput" accept="image/*">
-        <button class="btn secondary" id="btnPredict" disabled>Predecir</button>
-        <button class="btn secondary" id="btnClear" style="margin-left:8px;" disabled>Limpiar</button>
-      </div>
-
-      <div id="info" style="margin-top:10px;">
-        <div class="muted">Tamaño de entrada requerido: <strong>28 × 28</strong>, canales: <strong>1 (grayscale)</strong></div>
-      </div>
+  <div class="container">
+    <div class="py-3 text-center">
+      <h1 class="h4">Fashion-MNIST — Predecir desde imagen</h1>
+      <p class="muted mb-0">Sube una imagen; el modelo espera grayscale 28×28 (normalización 0–1).</p>
     </div>
 
-    <div class="card" style="min-width:360px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div class="muted">Predicciones</div>
-          <div id="topPrediction" class="top-result">—</div>
+    <div class="row g-4">
+      <div class="col-12 col-md-5">
+        <div class="card p-3">
+          <div class="d-flex flex-column align-items-center">
+            <div id="preview"><span class="muted">Sin imagen</span></div>
+
+            <div class="mt-3 w-100 d-flex gap-2 justify-content-center">
+              <label class="btn btn-primary mb-0">
+                Seleccionar imagen
+                <input id="fileInput" type="file" accept="image/*" style="display:none">
+              </label>
+              <button id="btnPredict" class="btn btn-success" disabled>Predecir</button>
+              <button id="btnClear" class="btn btn-outline-secondary" disabled>Limpiar</button>
+            </div>
+
+            <div class="mt-2 muted small text-center">Tamaño de entrada: <strong>28×28 (grayscale)</strong></div>
+            <div class="mt-2" id="model-status">Modelo: <span class="text-muted">cargando...</span></div>
+          </div>
         </div>
-        <div class="muted">Confianza</div>
       </div>
 
-      <div id="predictions" style="margin-top:8px;">
-        <!-- filas de predicción se inyectan aquí -->
-      </div>
+      <div class="col-12 col-md-7">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <div class="muted">Predicción principal</div>
+              <div id="topPrediction" style="font-weight:700; font-size:1.25rem;">—</div>
+            </div>
+            <div class="muted small">Confianzas</div>
+          </div>
 
-      <div style="margin-top:12px;" class="muted small">
-        <div>Notas:</div>
-        <ul>
-          <li>El modelo fue entrenado con <strong>Fashion-MNIST</strong>. Las etiquetas posibles son las 10 clases de Fashion-MNIST.</li>
-          <li>Si subes una foto en color, el front la convertirá a escala de grises antes de predecir.</li>
-        </ul>
+          <div id="predictions" class="mt-2">
+            <!-- filas de prob. serán inyectadas aquí -->
+          </div>
+
+          <div class="mt-3 muted small">
+            Etiquetas: T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- hidden small canvas for preprocessing (28x28) -->
+  <canvas id="smallCanvas" width="28" height="28" style="display:none"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
   <script>
-    (async () => {
-      const CLASS_NAMES = [
-        "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
-        "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
-      ];
-    
-      const modelStatus = document.getElementById('model-status');
-      const fileInput = document.getElementById('fileInput');
-      const btnSelect = document.getElementById('btnSelect');
-      const btnPredict = document.getElementById('btnPredict');
-      const btnClear = document.getElementById('btnClear');
-      const preview = document.getElementById('preview');
-      const predictionsDiv = document.getElementById('predictions');
-      const topPrediction = document.getElementById('topPrediction');
-    
-      let model;
-      try {
-        // 🔹 Carga directa del archivo model.json (en la misma carpeta que index.html)
-        model = await tf.loadLayersModel('model.json');
-        modelStatus.textContent = 'cargado ✅';
-      } catch (err) {
-        console.error(err);
-        modelStatus.textContent = 'error al cargar el modelo';
-        alert('No se pudo cargar model.json. Asegúrate de que el archivo está en la misma carpeta que index.html y que usas un servidor (no file://).');
-        return;
-      }
-    
-      // ... (el resto del script permanece igual)
+    // Config
+    const CLASS_NAMES = [
+      "T-shirt/top","Trouser","Pullover","Dress","Coat",
+      "Sandal","Shirt","Sneaker","Bag","Ankle boot"
+    ];
+    const MODEL_JSON_PATH = 'model.json'; // archivo en la misma carpeta que index.html
+    const MODEL_INPUT = 28;
+
+    // DOM
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const btnPredict = document.getElementById('btnPredict');
+    const btnClear = document.getElementById('btnClear');
+    const modelStatusSpan = document.querySelector('#model-status span');
+    const topPrediction = document.getElementById('topPrediction');
+    const predictionsDiv = document.getElementById('predictions');
+    const smallCanvas = document.getElementById('smallCanvas');
+    const ctxSmall = smallCanvas.getContext('2d');
+
+    let model = null;
+    let currentImage = null; // HTMLImageElement
+    let lastInputTensor = null;
+
+    // Cargar modelo (model.json en misma carpeta)
+    (async() => {
+      console.log("Cargando modelo...");
+      modelo = await tf.loadLayersModel("model.json");
+      console.log("Modelo cargado");
     })();
-    </script>
+
+    // Handlers
+    fileInput.addEventListener('change', handleFile);
+    btnPredict.addEventListener('click', doPredict);
+    btnClear.addEventListener('click', clearAll);
+
+    function clearAll(){
+      preview.innerHTML = '<span class="muted">Sin imagen</span>';
+      btnPredict.disabled = true;
+      btnClear.disabled = true;
+      topPrediction.textContent = '—';
+      predictionsDiv.innerHTML = '';
+      currentImage = null;
+      if (lastInputTensor) { lastInputTensor.dispose(); lastInputTensor = null; }
+      fileInput.value = '';
+    }
+
+    function handleFile(evt){
+      const file = evt.target.files && evt.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // show preview (fit)
+        preview.innerHTML = '';
+        preview.appendChild(img);
+        currentImage = img;
+        btnPredict.disabled = false;
+        btnClear.disabled = false;
+
+        // precompute input tensor so prediction is fast
+        if (lastInputTensor) { lastInputTensor.dispose(); lastInputTensor = null; }
+        lastInputTensor = preprocessImageToTensor(img);
+      };
+      img.onerror = () => {
+        alert('Error cargando la imagen.');
+      };
+      img.src = url;
+    }
+
+    // Preprocesa la imagen: redimensiona a 28x28 (drawImage), convierte a grayscale y normaliza 0..1
+    // Devuelve tensor4d shape [1,28,28,1]
+    function preprocessImageToTensor(imgEl){
+      // draw to small canvas (browser will resample)
+      // fill white background to avoid transparency issues
+      ctxSmall.fillStyle = 'white';
+      ctxSmall.fillRect(0,0, MODEL_INPUT, MODEL_INPUT);
+
+      // drawImage with cover-like behavior: preserve aspect ratio, center
+      const iw = imgEl.naturalWidth;
+      const ih = imgEl.naturalHeight;
+      const target = MODEL_INPUT;
+      // calculate scale to fit into target while preserving aspect
+      const scale = Math.max(target/iw, target/ih);
+      const sw = iw * scale;
+      const sh = ih * scale;
+      const dx = (target - sw) / 2;
+      const dy = (target - sh) / 2;
+      ctxSmall.drawImage(imgEl, 0, 0, iw, ih, dx, dy, sw, sh);
+
+      // get image data
+      const imageData = ctxSmall.getImageData(0,0, MODEL_INPUT, MODEL_INPUT).data;
+      // build Float32Array grayscale normalized
+      const floats = new Float32Array(MODEL_INPUT * MODEL_INPUT);
+      let idx = 0;
+      for (let i=0;i<imageData.length;i+=4){
+        const r = imageData[i] / 255;
+        const g = imageData[i+1] / 255;
+        const b = imageData[i+2] / 255;
+        const gray = (r + g + b) / 3;
+        floats[idx++] = gray;
+      }
+      // create tensor [1,28,28,1]
+      const t = tf.tensor4d(floats, [1, MODEL_INPUT, MODEL_INPUT, 1]);
+      return t;
+    }
+
+    async function doPredict(){
+      if (!model) { alert('Modelo no cargado'); return; }
+      if (!currentImage && !lastInputTensor) { alert('No hay imagen'); return; }
+
+      // Use lastInputTensor if available, else compute
+      const input = lastInputTensor ? lastInputTensor.clone() : preprocessImageToTensor(currentImage);
+
+      try {
+        const preds = await tf.tidy(() => {
+          const out = model.predict(input); // [1,10]
+          return out.dataSync(); // Float32Array
+        });
+
+        showPredictions(Array.from(preds));
+      } catch (err){
+        console.error('Error durante predict:', err);
+        alert('Error durante predict (ver consola)');
+      } finally {
+        input.dispose();
+      }
+    }
+
+    function showPredictions(probArray){
+      // top1
+      let bestIdx = 0;
+      for (let i=1;i<probArray.length;i++){
+        if (probArray[i] > probArray[bestIdx]) bestIdx = i;
+      }
+      topPrediction.textContent = `${CLASS_NAMES[bestIdx] || CLASS_NAMES[bestIdx]} — ${(probArray[bestIdx]*100).toFixed(2)}%`;
+
+      // render bars
+      predictionsDiv.innerHTML = '';
+      const maxProb = Math.max(...probArray);
+      for (let i=0;i<CLASS_NAMES.length;i++){
+        const row = document.createElement('div');
+        row.className = 'd-flex align-items-center my-1';
+
+        const label = document.createElement('div');
+        label.className = 'label text-muted';
+        label.textContent = CLASS_NAMES[i];
+
+        const barWrap = document.createElement('div');
+        barWrap.className = 'd-flex align-items-center flex-grow-1 ms-2 me-2';
+
+        const bar = document.createElement('div');
+        bar.className = 'bar w-100';
+        const fill = document.createElement('div');
+        fill.className = 'fill';
+
+        const pct = Math.round(probArray[i] * 100);
+        fill.style.width = pct + '%';
+        if (probArray[i] === maxProb) fill.style.background = '#2e7d32'; // green top
+        else if (probArray[i] > 0.05) fill.style.background = '#1976d2';
+        else fill.style.background = '#9e9e9e';
+
+        bar.appendChild(fill);
+        barWrap.appendChild(bar);
+
+        const num = document.createElement('div');
+        num.style.width = '64px';
+        num.style.textAlign = 'right';
+        num.textContent = (probArray[i]*100).toFixed(2) + '%';
+
+        row.appendChild(label);
+        row.appendChild(barWrap);
+        row.appendChild(num);
+
+        predictionsDiv.appendChild(row);
+      }
+    }
+
+    // cleanup on page close
+    window.addEventListener('beforeunload', () => {
+      if (lastInputTensor) lastInputTensor.dispose();
+      if (model) model.dispose?.();
+      tf.disposeVariables();
+    });
+
+  </script>
 </body>
 </html>
