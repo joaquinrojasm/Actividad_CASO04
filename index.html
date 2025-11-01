@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Humanos y Caballos</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <title>Caballos y Humanos</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="LogotipoV2-Simple.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <style>
       #resultado {
         font-weight: bold;
         font-size: 5rem;
         text-align: center;
-        color: #00d4ff;
       }
     </style>
   </head>
@@ -22,37 +22,44 @@
     <main>
       <div class="px-4 py-2 my-2 text-center border-bottom">
         <img class="d-block mx-auto mb-2" src="LogotipoV2-Simple.png" alt="" width="80" height="80">
-        <h1 class="display-5 fw-bold">Humanos y Caballos 🧍🐴</h1>
+        <h1 class="display-5 fw-bold">Caballos y Humanos</h1>
         <div class="col-lg-6 mx-auto">
-          <p class="lead mb-0">Clasificación de imágenes en tiempo real usando TensorFlow.js</p>
+          <p class="lead mb-0">Clasificaci&oacute;n de im&aacute;genes (Caballo o Humano) usando la c&aacute;mara web con TensorFlow.js</p>
+          <p class="lead mb-4">Proyecto educativo basado en el dataset Horses or Humans 🧠</p>
         </div>
       </div>
 
       <div class="container mt-5">
         <div class="row">
           <div class="col-12 col-md-4 offset-md-4 text-center">
-            <video id="video" playsinline autoplay style="width: 1px;"></video>
+            <!-- Cámara -->
+            <video id="video" autoplay playsinline muted style="width: 1px;"></video>
             <button class="btn btn-primary mb-2" id="cambiar-camara" onclick="cambiarCamara();">Cambiar cámara</button>
-            <canvas id="canvas" width="400" height="400" style="max-width: 100%; border-radius: 10px; border: 4px solid #222;"></canvas>
+            
+            <!-- Canvases -->
+            <canvas id="canvas" width="400" height="400" style="max-width: 100%;"></canvas>
             <canvas id="otrocanvas" width="100" height="100" style="display: none;"></canvas>
+
+            <!-- Resultado -->
             <div id="resultado">Cargando modelo...</div>            
           </div>
         </div>
       </div>
 
       <div class="bg-dark text-secondary mt-5 px-4 py-2 text-center">
-        <div class="py-4">
-          <h1 class="display-6 fw-bold text-white">Detector IA</h1>
-          <p class="fs-5 mb-4">Proyecto de clasificación en tiempo real con TensorFlow.js</p>
+        <div class="py-5">
+          <h1 class="display-6 fw-bold text-white">Proyecto IA - Clasificador</h1>
+          <div class="col-lg-6 mx-auto">
+            <p class="fs-5 mb-4">Desarrollado con TensorFlow.js, HTML5 y Bootstrap.</p>
+          </div>
         </div>
       </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
 
     <script type="text/javascript">
-
       var tamano = 400;
       var video = document.getElementById("video");
       var canvas = document.getElementById("canvas");
@@ -62,11 +69,12 @@
       var facingMode = "user";
       var modelo = null;
 
+      // Cargar el modelo
       (async () => {
         console.log("Cargando modelo...");
         modelo = await tf.loadLayersModel("model.json");
-        console.log("✅ Modelo cargado");
-        document.getElementById("resultado").innerHTML = "Apunta la cámara a una persona o un caballo";
+        console.log("✅ Modelo cargado correctamente");
+        document.getElementById("resultado").innerHTML = "Modelo cargado ✅";
       })();
 
       window.onload = function () {
@@ -74,9 +82,18 @@
       };
 
       function mostrarCamara() {
-        var opciones = { audio: false, video: { width: tamano, height: tamano } };
+        const opciones = {
+          audio: false,
+          video: {
+            facingMode: facingMode,
+            width: tamano,
+            height: tamano
+          }
+        };
+
         if (navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices.getUserMedia(opciones)
+          navigator.mediaDevices
+            .getUserMedia(opciones)
             .then(function (stream) {
               currentStream = stream;
               video.srcObject = currentStream;
@@ -84,26 +101,22 @@
               predecir();
             })
             .catch(function (err) {
-              alert("No se pudo usar la cámara 😢");
-              console.error(err);
+              console.error("❌ Error al acceder a la cámara:", err);
+              alert("No se pudo utilizar la cámara 😭. Verifica los permisos del navegador.");
             });
         } else {
-          alert("Tu navegador no soporta getUserMedia");
+          alert("Tu navegador no soporta getUserMedia 😢");
         }
       }
 
       function cambiarCamara() {
         if (currentStream) {
-          currentStream.getTracks().forEach(track => track.stop());
+          currentStream.getTracks().forEach((track) => track.stop());
         }
-        facingMode = facingMode === "user" ? "environment" : "user";
-        var opciones = { audio: false, video: { facingMode: facingMode, width: tamano, height: tamano } };
-        navigator.mediaDevices.getUserMedia(opciones)
-          .then(function (stream) {
-            currentStream = stream;
-            video.srcObject = currentStream;
-          })
-          .catch(err => console.error("Error cambiando cámara", err));
+
+        facingMode = facingMode == "user" ? "environment" : "user";
+
+        mostrarCamara();
       }
 
       function procesarCamara() {
@@ -114,46 +127,37 @@
       function predecir() {
         if (modelo != null) {
           resample_single(canvas, 100, 100, otrocanvas);
+
           var ctx2 = otrocanvas.getContext("2d");
           var imgData = ctx2.getImageData(0, 0, 100, 100);
 
           var arr = [];
-          var fila = [];
+          var arr100 = [];
 
           for (var p = 0; p < imgData.data.length; p += 4) {
             var r = imgData.data[p] / 255;
             var g = imgData.data[p + 1] / 255;
             var b = imgData.data[p + 2] / 255;
-            var gris = (r + g + b) / 3; // escala de grises
+            var gris = (r + g + b) / 3;
 
-            fila.push([gris]);
-            if (fila.length === 100) {
-              arr.push(fila);
-              fila = [];
+            arr100.push([gris]);
+            if (arr100.length == 100) {
+              arr.push(arr100);
+              arr100 = [];
             }
           }
 
           arr = [arr];
           var tensor = tf.tensor4d(arr);
+          var resultado = modelo.predict(tensor).dataSync();
 
-          var resultado = modelo.predict(tensor).dataSync()[0];
-
-          var respuesta;
-          if (resultado <= 0.5) {
-            respuesta = "🧍 Humano";
-            document.getElementById("resultado").style.color = "#ff0055";
-          } else {
-            respuesta = "🐴 Caballo";
-            document.getElementById("resultado").style.color = "#00ff88";
-          }
-
+          var respuesta = resultado <= 0.5 ? "Caballo 🐴" : "Humano 🧍‍♂️";
           document.getElementById("resultado").innerHTML = respuesta;
         }
-
         setTimeout(predecir, 150);
       }
 
-      // Reescalado (igual que en tu ejemplo original)
+      // Reescalado Hermite
       function resample_single(canvas, width, height, resize_canvas) {
         var width_source = canvas.width;
         var height_source = canvas.height;
@@ -169,6 +173,7 @@
         var img2 = ctx2.createImageData(width, height);
         var data = img.data;
         var data2 = img2.data;
+
         for (var j = 0; j < height; j++) {
           for (var i = 0; i < width; i++) {
             var x2 = (i + j * width) * 4;
@@ -211,7 +216,6 @@
         }
         ctx2.putImageData(img2, 0, 0);
       }
-
     </script>
   </body>
 </html>
