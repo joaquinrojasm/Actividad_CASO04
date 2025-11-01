@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Detección Humano vs Caballo 🐴🧑</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        video { border: 2px solid #333; border-radius: 8px; }
+        #result { font-size: 24px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Detección Humano vs Caballo 🐴🧑</h1>
+    <video id="webcam" autoplay width="300" height="300"></video>
+    <div id="result">Cargando modelo...</div>
+
+    <script>
+        let model;
+        const video = document.getElementById('webcam');
+        const resultDiv = document.getElementById('result');
+
+        // 1️⃣ Cargar el modelo MobileNetV2 convertido a TFJS
+        async function loadModel() {
+            model = await tf.loadLayersModel('model.json'); // Carpeta con tu modelo
+            resultDiv.innerText = "Modelo cargado ✅";
+            startWebcam();
+        }
+
+        // 2️⃣ Activar cámara
+        async function startWebcam() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.addEventListener('loadeddata', predictLoop);
+        }
+
+        // 3️⃣ Predicción en tiempo real
+        async function predictLoop() {
+            while(true){
+                const tensor = tf.browser.fromPixels(video)
+                    .resizeNearestNeighbor([224,224]) // tamaño del MobileNetV2
+                    .expandDims()
+                    .toFloat()
+                    .div(tf.scalar(255));
+
+                const prediction = await model.predict(tensor).data();
+                if(prediction[0] > 0.5){
+                    resultDiv.innerText = "Humano 🧑";
+                } else {
+                    resultDiv.innerText = "Caballo 🐴";
+                }
+
+                await tf.nextFrame(); // Espera al siguiente frame
+            }
+        }
+
+        loadModel();
+    </script>
+</body>
+</html>
